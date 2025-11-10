@@ -25,6 +25,13 @@ LAST ACTION:
 def roll_d20() -> int:
     return random.randint(1, 20)
 
+def outcome_from_roll(d20: int) -> str:
+    if d20 == 1: return "critical failure"
+    if d20 <= 9: return "failure"
+    if d20 <= 14: return "mixed"
+    if d20 <= 19: return "success"
+    return "critical success"  # 20
+
 class StoryEngine:
     """Temporary local generator — later replaced with GPT API."""
     def generate(self, state: Dict[str, Any], last_action: str) -> Dict[str, Any]:
@@ -32,9 +39,11 @@ class StoryEngine:
             random.seed(seed + len(last_action))
 
         d20 = roll_d20()
+        outcome = outcome_from_roll(d20)
+
         narrative = (
-            f"You attempt '{last_action}'. The air around {state.get('location','the area')} trembles. "
-            f"The dice of fate rolls a {d20}, deciding your destiny."
+            f"You attempt '{last_action}'. The air around {state.get('location','the area')} stirs. "
+            f"Fate rolls a d20 → {d20} ({outcome})."
         )
         options = [
             {"id": 1, "text": "Advance cautiously."},
@@ -42,6 +51,12 @@ class StoryEngine:
             {"id": 3, "text": "Retreat and rethink strategy."},
         ]
         state_changes = {
-            "recent_events": state.get("recent_events", []) + [f"Action '{last_action}' (d20: {d20})"]
+            "recent_events": state.get("recent_events", []) + [f"Action '{last_action}' (d20: {d20}, {outcome})"]
         }
-        return {"narrative": narrative, "options": options, "state_changes": state_changes}
+
+        # NEW: meta block for UI
+        meta = {
+            "dice": {"type": "d20", "roll": d20, "outcome": outcome}
+        }
+
+        return {"narrative": narrative, "options": options, "state_changes": state_changes, "meta": meta}

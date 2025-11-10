@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import StoryBox from "./components/StoryBox.jsx";
 import OptionsList from "./components/OptionsList.jsx";
 import InputBox from "./components/InputBox.jsx";
-import TopBar from "./components/TopBar.jsx";
+import TopBar from "./components/TopBar.jsx"; // from Step 3
+import DiceBanner from "./components/DiceBanner.jsx";
 import { nextTurn, loadState } from "./lib/api.js";
 
 export default function App() {
@@ -13,7 +14,18 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  // Load state when session changes
+  // Dice banner state
+  const [dice, setDice] = useState({ roll: null, outcome: "" });
+  const [diceVisible, setDiceVisible] = useState(false);
+  const diceTimer = useRef(null);
+
+  function showDice(roll, outcome) {
+    setDice({ roll, outcome });
+    setDiceVisible(true);
+    clearTimeout(diceTimer.current);
+    diceTimer.current = setTimeout(() => setDiceVisible(false), 1800);
+  }
+
   async function handleLoadGame() {
     setError("");
     try {
@@ -22,21 +34,21 @@ export default function App() {
         setState(saved);
         setNarrative("🔁 Game loaded!");
       } else {
+        setState({ location: "Elderwood Forest", recent_events: [] });
         setNarrative("No save found. Starting a new adventure...");
+        setOptions([]);
       }
     } catch (e) {
       setError(e.message);
     }
   }
 
-  // Start a new game
   function handleNewGame() {
     setState({ location: "Elderwood Forest", recent_events: [] });
     setNarrative("🌱 A new journey begins...");
     setOptions([]);
   }
 
-  // Player action → request next story step
   async function act(lastAction) {
     setBusy(true);
     setError("");
@@ -45,6 +57,11 @@ export default function App() {
       setState({ ...state, ...res.state_changes });
       setNarrative(res.narrative);
       setOptions(res.options || []);
+      // NEW: dice banner
+      const maybe = res?.meta?.dice;
+      if (maybe?.type === "d20" && typeof maybe.roll === "number") {
+        showDice(maybe.roll, maybe.outcome || "");
+      }
     } catch (e) {
       setError(e.message);
     } finally {
@@ -52,13 +69,21 @@ export default function App() {
     }
   }
 
-  // Auto-load once on mount
   useEffect(() => {
     handleLoadGame();
+    return () => clearTimeout(diceTimer.current);
   }, [sessionId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-slate-100">
+      {/* Dice banner */}
+      <DiceBanner
+        roll={dice.roll}
+        outcome={dice.outcome}
+        visible={diceVisible}
+        onHide={() => setDiceVisible(false)}
+      />
+
       <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-4">
         <TopBar
           sessionId={sessionId}

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Optional
 
 class DMRequest(BaseModel):
     state: Dict[str, Any]
@@ -13,3 +13,6 @@ class DMResponse(BaseModel):
     narrative: str
     options: List[DMOption]
     state_changes: Dict[str, Any]
+    # NEW: metadata for UI (e.g., dice roll)
+    meta: Optional[Dict[str, Any]] = None
+

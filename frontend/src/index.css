@@ -3,3 +3,6 @@
 @tailwind utilities;
 
 :root { color-scheme: light dark; }
+
+/* Smooth transform/opacity transitions for our banner */
+* { transition: opacity 180ms ease, transform 180ms ease; }
